@@ -2,7 +2,7 @@
 
 Bem-vindo ao meu repositório de workflows para [n8n](https://n8n.io/). Este projeto reúne automações desenvolvidas para integrar diferentes serviços, processar dados e eliminar tarefas repetitivas.
 
-## 📂 O que tem aqui?
+## O que tem aqui?
 
 Aqui você encontrará arquivos `.json` que podem ser importados diretamente para o seu editor n8n. As automações cobrem casos de uso como:
 
@@ -10,14 +10,6 @@ Aqui você encontrará arquivos `.json` que podem ser importados diretamente par
 * **Processamento de Dados:** Tratamento e formatação de JSONs complexos.
 * **Automação de Notificações:** Envios automáticos via Slack/Email/Telegram.
 * **Triggers Personalizados:** Workflows acionados via chamadas HTTP do front-end.
-
-## 🚀 Workflows Destaque
-
-| Workflow | Descrição | Trigger |
-| :--- | :--- | :--- |
-| `Sync_Lead_CRM.json` | Sincroniza novos leads do front-end para o CRM | Webhook/HTTP |
-| `Daily_Report.json` | Gera relatório diário e envia por e-mail | Cron (Schedule) |
-| `Data_Sanitization.json` | Limpeza e padronização de dados de entrada | Manual/Execute |
 
 ## Pré-requisitos
 
