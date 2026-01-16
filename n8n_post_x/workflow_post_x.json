@@ -1,0 +1,309 @@
+{
+  "name": "workflow_post_x",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "6232b1db-7e1c-4644-92f4-d6fe821c29d1",
+      "name": "A cada 2h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -720,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// CONFIGURAÇÃO\nconst feeds = [\n  'https://www.tabnews.com.br/recentes/rss',\n  'https://dev.to/feed',\n  'https://techcrunch.com/feed/'\n];\n\n// LÓGICA DA SORTE (60% Pergunta, 40% Notícia)\nconst isQuestion = Math.random() < 0.6;\n\nif (isQuestion) {\n  return [{ json: { mode: 'question', feedUrl: '' } }];\n} else {\n  const randomFeed = feeds[Math.floor(Math.random() * feeds.length)];\n  return [{ json: { mode: 'news', feedUrl: randomFeed } }];\n}"
+      },
+      "id": "8d56edbd-3f2c-4513-8f06-18d767639920",
+      "name": "Cérebro (Decisor)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "401ef841-f3d6-4d28-aa4b-925892551848",
+              "leftValue": "={{ $json.mode }}",
+              "rightValue": "news",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "451bfe0a-efb7-4363-86a7-b3808b7ad6a5",
+      "name": "É Notícia?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        -272,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Cérebro (Decisor)').item.json.feedUrl }}",
+        "options": {}
+      },
+      "id": "ec157617-e822-4f21-87d5-d0cd747030a3",
+      "name": "Ler RSS Aleatório",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lógica Anti-Repetição\nconst staticData = $getWorkflowStaticData('global');\nconst lastPostId = staticData.lastPostId;\nconst latestItem = $input.first().json;\n\nif (latestItem.guid === lastPostId || latestItem.link === lastPostId) {\n  return []; \n}\n\nstaticData.lastPostId = latestItem.guid || latestItem.link;\nreturn [ { json: latestItem } ];"
+      },
+      "id": "d6a87d56-93e0-4bf9-bd5c-25b03d3177ea",
+      "name": "Filtrar Repetidos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.3-70b-versatile"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  { \"role\": \"system\", \"content\": \"Você é um dev sênior irônico e inteligente no Twitter. Resuma a notícia para devs. Max 200 chars. Use 1 hashtag.\" },\n  { \"role\": \"user\", \"content\": $json.title + \" - \" + $json.contentSnippet }\n] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e2e49446-de83-4f44-a7ae-4a9eaaf09e53",
+      "name": "IA: Resumir Notícia",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        448,
+        0
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "GHA0aVTmBwMNZPKW",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "groqApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "llama-3.3-70b-versatile"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  { \n    \"role\": \"system\", \n    \"content\": \"Você é um dev influencer no Twitter. Gere um tweet curto para programadores.\\n\\nESCOLHA ALEATORIAMENTE UM DESTES DOIS ESTILOS:\\n1. Uma pergunta engajadora (sobre rotina, código legado, linguagens, polêmicas).\\n2. Uma curiosidade técnica ou histórica interessante (ex: origem do Linux, primeiro bug, fatos sobre linguagens).\\n\\nEstilo: Natural, levemente irônico, pareça um humano. NADA de hashtags. Máximo 150 caracteres.\" \n  },\n  { \n    \"role\": \"user\", \n    \"content\": \"Gere um novo tweet (pergunta ou curiosidade) agora.\" \n  }\n] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1c7b24aa-da41-409e-bc17-1ffb4240272a",
+      "name": "IA: Criar Pergunta",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        0,
+        320
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "GHA0aVTmBwMNZPKW",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.choices[0].message.content }}\n\n{{ $('Filtrar Repetidos').item.json.link }}",
+        "additionalFields": {}
+      },
+      "id": "0aaefcf6-a43e-440e-823a-d906dc277708",
+      "name": "Postar News (+Link)",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "credentials": {
+        "twitterOAuth2Api": {
+          "id": "B0JTPNPRSE9mCcRR",
+          "name": "X account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.choices[0].message.content }}",
+        "additionalFields": {}
+      },
+      "id": "e3ca3380-0965-463f-950d-fdf7690b856b",
+      "name": "Postar Pergunta",
+      "type": "n8n-nodes-base.twitter",
+      "typeVersion": 2,
+      "position": [
+        224,
+        320
+      ],
+      "credentials": {
+        "twitterOAuth2Api": {
+          "id": "B0JTPNPRSE9mCcRR",
+          "name": "X account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "A cada 2h": {
+      "main": [
+        [
+          {
+            "node": "Cérebro (Decisor)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cérebro (Decisor)": {
+      "main": [
+        [
+          {
+            "node": "É Notícia?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "É Notícia?": {
+      "main": [
+        [
+          {
+            "node": "Ler RSS Aleatório",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IA: Criar Pergunta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler RSS Aleatório": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Repetidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Repetidos": {
+      "main": [
+        [
+          {
+            "node": "IA: Resumir Notícia",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA: Resumir Notícia": {
+      "main": [
+        [
+          {
+            "node": "Postar News (+Link)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA: Criar Pergunta": {
+      "main": [
+        [
+          {
+            "node": "Postar Pergunta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "19ce47b3-26b2-4bda-8481-ec0939b1550c",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cba6dcf642e028a3250aade88cdd6112def31f2da25704d33cdd069708d40eb1"
+  },
+  "id": "waumkzddqWFkLNeK3hbc3",
+  "tags": []
+}
